@@ -7,7 +7,14 @@ A small, typed Python reconstruction of the CIFAR-10 experiment in
 (Achille, Rovere & Soatto, ICLR 2019). Train on blurry images, restore clear images,
 and compare final accuracy and layer-wise weight sensitivity.
 
-![Research design and All-CNN architecture](docs/architecture.png)
+![All-CNN architecture, training protocol, and measured seed-0 results](docs/architecture.png)
+
+**Figure 1.** (a) Nine convolution blocks and global average pooling.
+(b) Initial blur followed by 160 clear epochs. (c) Clear-test accuracy; dotted
+lines mark blur removal. (d) Mean layer-wise share of final-model Fisher trace.
+All curves use the committed seed-0 measurements.
+[Vector PDF](docs/architecture.pdf) · [SVG](docs/architecture.svg) ·
+[Figure source](docs/diagram.py) (`uv run python docs/diagram.py`).
 
 This is **our documented reconstruction, not the authors' original code**.
 The included results cover one completed training seed. They are preliminary,

@@ -1,5 +1,6 @@
-"""Render the repository's research architecture figure from editable vector primitives."""
+"""Render a paper-style architecture and results figure from committed measurements."""
 
+import json
 from pathlib import Path
 from typing import Any
 
@@ -7,167 +8,178 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyArrowPatch, FancyBboxPatch
+from matplotlib.patches import Rectangle
 
 OUT: Path = Path(__file__).resolve().parent
-NAVY: str = "#101e31"
-PANEL: str = "#1b2e46"
-INK: str = "#edf5ff"
-MUTED: str = "#a3b8cf"
-TEAL: str = "#64ddcc"
-ORANGE: str = "#ffbd75"
-fig: Any
-axis: Any
-fig, axis = plt.subplots(figsize=(15.2, 10))
-fig.patch.set_facecolor(NAVY)
-axis.set_facecolor(NAVY)
-axis.set_xlim(0, 1520)
-axis.set_ylim(1000, 0)
-axis.axis("off")
-axis.text(55, 56, "CRITICAL LEARNING PERIODS", color=TEAL, fontsize=12, weight="bold")
-axis.text(55, 112, "Does early blur leave a lasting mark?", color=INK, fontsize=29, weight="bold")
-axis.text(
-    55,
-    155,
-    "CIFAR-10  /  All-CNN reconstruction  /  accuracy + final-model Fisher sensitivity",
-    color=MUTED,
-    fontsize=12,
+RESULTS: Path = OUT.parent / "results" / "seed0"
+COLORS: tuple[str, ...] = ("#343434", "#0072B2", "#D55E00")
+DEFICITS: tuple[int, ...] = (0, 40, 100)
+CLEAR_EPOCHS: int = 160
+CHANNELS: tuple[int, ...] = (96, 96, 192, 192, 192, 192, 192, 192, 10)
+SIZES: tuple[int, ...] = (32, 32, 16, 16, 16, 8, 8, 8, 8)
+plt.rcParams.update(
+    {
+        "font.family": "DejaVu Sans",
+        "font.size": 9,
+        "axes.spines.top": False,
+        "axes.spines.right": False,
+        "axes.linewidth": 0.7,
+        "svg.fonttype": "none",
+        "pdf.fonttype": 42,
+    }
 )
-cards: list[tuple[str, str, str]] = [
-    ("INPUT", "RGB image", "3 × 32 × 32"),
-    ("BLOCKS 1–3", "3×3 conv: 96, 96, 192\nLast convolution: stride 2", "192 × 16 × 16"),
-    ("BLOCKS 4–6", "3×3 conv: 192, 192, 192\nLast convolution: stride 2", "192 × 8 × 8"),
-    ("BLOCKS 7–9", "3×3: 192 → 1×1: 192\n→ 1×1: 10 class maps", "10 × 8 × 8"),
-    ("READOUT", "Global average pooling\nNo fully connected layer", "10 class scores"),
-]
+fig: Any = plt.figure(figsize=(14, 7.4), facecolor="white")
+architecture: Any = fig.add_axes(rect=(0.04, 0.60, 0.93, 0.35))
+architecture.set_xlim(left=-0.7, right=11.6)
+architecture.set_ylim(bottom=-1.0, top=2.5)
+architecture.axis("off")
+architecture.text(x=-0.7, y=2.25, s="(a)  All-CNN architecture", weight="bold", fontsize=11)
+architecture.text(x=-0.35, y=0.65, s="RGB\ninput", ha="center", va="center")
+architecture.text(x=-0.35, y=-0.15, s="3 × 32²", ha="center", fontsize=8)
 index: int
-card: tuple[str, str, str]
-for index, card in enumerate(cards):
-    x: int = 55 + index * 290
-    axis.add_patch(
-        FancyBboxPatch(
-            xy=(x, 205),
-            width=250,
-            height=205,
-            boxstyle="round,pad=0,rounding_size=14",
-            facecolor=PANEL,
-            edgecolor="#304965",
-            linewidth=1.1,
+channels: int
+for index, channels in enumerate(CHANNELS):
+    center: float = index + 0.65
+    height: float = 0.65 + SIZES[index] / 32 * 0.65
+    architecture.add_patch(
+        Rectangle(
+            xy=(center - 0.35, 0.65 - height / 2),
+            width=0.70,
+            height=height,
+            facecolor="#e7eef3" if index in (2, 5) else "#f4f4f4",
+            edgecolor="#333333",
+            linewidth=0.8,
         )
     )
-    axis.text(x + 20, 240, card[0], color=TEAL, fontsize=10, weight="bold")
-    axis.text(x + 20, 292, card[1], color=INK, fontsize=11, linespacing=1.7)
-    axis.text(x + 20, 380, card[2], color=ORANGE, fontsize=13, weight="bold")
-    if index < 4:
-        axis.add_patch(
-            FancyArrowPatch(
-                posA=(x + 258, 305),
-                posB=(x + 282, 305),
-                arrowstyle="-|>",
-                mutation_scale=15,
-                color=MUTED,
-                linewidth=1.5,
-            )
-        )
-axis.text(
-    55,
-    450,
-    "Each convolution block: Conv → BatchNorm → ReLU. No skip connections. This is a CNN, not an MLP.",
-    color=MUTED,
-    fontsize=11,
+    architecture.annotate(
+        text="",
+        xy=(center - 0.36, 0.65),
+        xytext=(center - 0.63, 0.65),
+        arrowprops={"arrowstyle": "->", "lw": 0.7},
+    )
+    architecture.text(x=center, y=1.62, s=f"Conv {index + 1}", ha="center", fontsize=8)
+    architecture.text(
+        x=center,
+        y=0.65,
+        s=f"{'3 × 3' if index < 7 else '1 × 1'}\n{channels}",
+        ha="center",
+        va="center",
+        linespacing=1.7,
+    )
+    architecture.text(x=center, y=-0.15, s=f"{channels} × {SIZES[index]}²", ha="center", fontsize=8)
+    if index in (2, 5):
+        architecture.text(x=center, y=1.95, s="stride 2", ha="center", fontsize=8, color=COLORS[1])
+architecture.annotate(
+    text="", xy=(9.35, 0.65), xytext=(9.04, 0.65), arrowprops={"arrowstyle": "->", "lw": 0.7}
 )
-axis.text(
-    55,
-    515,
-    "SAME CLEAR TRAINING. DIFFERENT EARLY EXPERIENCE.",
-    color=INK,
-    fontsize=14,
-    weight="bold",
+architecture.text(x=9.82, y=0.65, s="Global\naverage pool", ha="center", va="center")
+architecture.annotate(
+    text="", xy=(10.85, 0.65), xytext=(10.35, 0.65), arrowprops={"arrowstyle": "->", "lw": 0.7}
 )
-condition: int
+architecture.text(x=11.2, y=0.65, s="10\nscores", ha="center", va="center")
+architecture.text(
+    x=-0.35,
+    y=-0.7,
+    s="Each block: convolution → batch normalization → ReLU. "
+    "Tensor labels: channels × spatial size. No fully connected layers.",
+    fontsize=9,
+)
+
+protocol: Any = fig.add_axes(rect=(0.08, 0.19, 0.235, 0.32))
+accuracy: Any = fig.add_axes(rect=(0.405, 0.19, 0.235, 0.32))
+fisher: Any = fig.add_axes(rect=(0.73, 0.19, 0.235, 0.32))
+protocol.set_title(label="(b)  Training protocol", loc="left", fontsize=11, pad=14)
+accuracy.set_title(label="(c)  Clear-test accuracy", loc="left", fontsize=11, pad=14)
+fisher.set_title(label="(d)  Final-model Fisher", loc="left", fontsize=11, pad=14)
+summary: list[dict[str, Any]] = json.loads((RESULTS / "fisher-summary.json").read_text())
 deficit: int
-for condition, deficit in enumerate([0, 40, 100]):
-    y: int = 550 + 78 * condition
-    x = 375
-    scale: float = 3.8
-    axis.text(
-        55,
-        y + 27,
-        ["Clear baseline", "Blur removed at 40", "Blur removed at 100"][condition],
-        color=INK,
-        fontsize=12,
+for index, deficit in enumerate(DEFICITS):
+    protocol.barh(
+        y=index,
+        width=CLEAR_EPOCHS,
+        left=deficit,
+        height=0.45,
+        facecolor="white",
+        edgecolor=COLORS[index],
+        linewidth=1.1,
     )
     if deficit:
-        axis.add_patch(
-            FancyBboxPatch(
-                xy=(x, y),
-                width=deficit * scale,
-                height=46,
-                boxstyle="round,pad=0,rounding_size=5",
-                facecolor=ORANGE,
-                edgecolor="none",
-            )
+        protocol.barh(
+            y=index,
+            width=deficit,
+            height=0.45,
+            facecolor="#dddddd",
+            edgecolor=COLORS[index],
+            hatch="////",
+            linewidth=0.8,
         )
-        axis.text(
-            x + deficit * scale / 2,
-            y + 29,
-            f"{deficit} blur",
-            ha="center",
-            color=NAVY,
-            fontsize=12,
-            weight="bold",
-        )
-    axis.add_patch(
-        FancyBboxPatch(
-            xy=(x + deficit * scale, y),
-            width=160 * scale,
-            height=46,
-            boxstyle="round,pad=0,rounding_size=5",
-            facecolor=TEAL,
-            edgecolor="none",
-        )
+    protocol.text(
+        x=deficit + CLEAR_EPOCHS / 2, y=index, s="160 clear", ha="center", va="center", fontsize=8
     )
-    axis.text(
-        x + (deficit + 80) * scale,
-        y + 29,
-        "160 clear epochs",
-        ha="center",
-        color=NAVY,
-        fontsize=12,
-        weight="bold",
+    record: dict[str, Any] = json.loads((RESULTS / f"s0-blur{deficit}.json").read_text())
+    history: list[dict[str, Any]] = record["history"]
+    row: dict[str, Any]
+    epochs: list[int] = [row["epoch"] for row in history]
+    scores: list[float] = [100 * row["accuracy"] for row in history]
+    accuracy.plot(
+        epochs, scores, color=COLORS[index], linewidth=1.1, label=f"{deficit} blur epochs"
     )
-    axis.text(
-        x + (deficit + 160) * scale + 14, y + 29, str(deficit + 160), color=MUTED, fontsize=11
+    accuracy.plot(epochs[-1], scores[-1], marker="o", color=COLORS[index], markersize=3)
+    accuracy.annotate(
+        text=f"{scores[-1]:.2f}",
+        xy=(epochs[-1], scores[-1]),
+        xytext=(3, 5),
+        textcoords="offset points",
+        fontsize=8,
+        color=COLORS[index],
     )
-axis.text(
-    375,
-    785,
-    "Blur: bilinear 32 → 8 → 32. All 50,000 training images; evaluate on 10,000 clear test images.",
-    color=MUTED,
-    fontsize=11,
+    if deficit:
+        accuracy.axvline(x=deficit, color=COLORS[index], linestyle=":", linewidth=0.7)
+    fisher.plot(
+        range(1, 10),
+        summary[index]["layer_share_percent"],
+        color=COLORS[index],
+        marker=("o", "s", "^")[index],
+        markersize=3,
+        linewidth=1.1,
+        label=f"{deficit} blur epochs",
+    )
+protocol.set_yticks(ticks=range(3), labels=["No blur", "40 blur", "100 blur"])
+protocol.invert_yaxis()
+protocol.set_xlim(left=0, right=270)
+protocol.set_xticks(ticks=[0, 100, 200, 260])
+protocol.set_xlabel(xlabel="Training epoch")
+protocol.text(
+    x=0, y=-0.31, s="Hatched: bilinear 32 → 8 → 32 blur", transform=protocol.transAxes, fontsize=8
 )
-axis.add_patch(
-    FancyBboxPatch(
-        xy=(55, 830),
-        width=1410,
-        height=110,
-        boxstyle="round,pad=0,rounding_size=12",
-        facecolor=PANEL,
-        edgecolor="none",
-    )
+accuracy.set_xlim(left=0, right=292)
+accuracy.set_ylim(bottom=0, top=100)
+accuracy.set_xlabel(xlabel="Training epoch")
+accuracy.set_ylabel(ylabel="Top-1 accuracy (%)")
+accuracy.set_xticks(ticks=[0, 100, 200, 260])
+fisher.set_xticks(ticks=range(1, 10))
+fisher.set_ylim(bottom=0, top=35)
+fisher.set_xlabel(xlabel="Convolution block")
+fisher.set_ylabel(ylabel="Share of model-Fisher trace (%)")
+fisher.legend(frameon=False, fontsize=8, loc="upper left")
+fig.text(
+    x=0.04,
+    y=0.055,
+    s="CIFAR-10 · independent reconstruction · training seed 0 only. "
+    "Fisher: 300 clear training probes, mean of 5 posterior-label draws.",
+    fontsize=9,
 )
-axis.text(80, 870, "ACCURACY", color=TEAL, fontsize=11, weight="bold")
-axis.text(80, 911, "Does a performance deficit remain?", color=INK, fontsize=14)
-axis.text(750, 870, "FISHER SENSITIVITY", color=ORANGE, fontsize=11, weight="bold")
-axis.text(750, 911, "Which layers' weights affect predictions most?", color=INK, fontsize=14)
-axis.text(
-    55,
-    976,
-    "Independent reconstruction of Achille, Rovere & Soatto (ICLR 2019). Assumptions and estimator differences are documented.",
-    color=MUTED,
-    fontsize=10,
+fig.text(
+    x=0.04,
+    y=0.025,
+    s="Final-model measurements, not Fisher trajectories during training. "
+    "One seed does not establish a permanent deficit or a causal mechanism.",
+    fontsize=8,
+    color="#555555",
 )
-fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
-fig.savefig(OUT / "architecture.png", dpi=150, facecolor=NAVY)
-fig.savefig(OUT / "architecture.svg", facecolor=NAVY)
+extension: str
+for extension in ("png", "svg", "pdf"):
+    fig.savefig(OUT / f"architecture.{extension}", dpi=220, facecolor="white")
 plt.close(fig)
+svg: Path = OUT / "architecture.svg"
+svg.write_text("\n".join(line.rstrip() for line in svg.read_text().splitlines()) + "\n")
