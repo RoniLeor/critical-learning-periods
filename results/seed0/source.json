@@ -1,0 +1,22 @@
+{
+  "url": "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",
+  "published_md5": "c58f30108f718f92721af3b95e74349a",
+  "archive_sha256": "6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce",
+  "train": 50000,
+  "test": 10000,
+  "classes": [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+  ],
+  "exact_shared_pixel_hashes": 0,
+  "split_policy": "official splits preserved, no deduplication or subsampling",
+  "pillow": "12.3.0"
+}

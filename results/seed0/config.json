@@ -1,0 +1,57 @@
+{
+  "dataset": {
+    "url": "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",
+    "published_md5": "c58f30108f718f92721af3b95e74349a",
+    "archive_sha256": "6d958be074577803d12ecdefd02955f39262c83c16fe9348329d7fe0b5c001ce",
+    "train": 50000,
+    "test": 10000,
+    "classes": [
+      "airplane",
+      "automobile",
+      "bird",
+      "cat",
+      "deer",
+      "dog",
+      "frog",
+      "horse",
+      "ship",
+      "truck"
+    ],
+    "exact_shared_pixel_hashes": 0,
+    "split_policy": "official splits preserved, no deduplication or subsampling",
+    "pillow": "12.3.0"
+  },
+  "architecture": "Appendix A All-CNN reconstruction",
+  "batch": 128,
+  "clear_epochs": 160,
+  "learning_rate": 0.05,
+  "decay": 0.97,
+  "weight_decay": 0.001,
+  "momentum": 0.0,
+  "learning_rate_reset": false,
+  "conv_bias": true,
+  "padding": "same",
+  "blocks": "Conv-BatchNorm-ReLU including final 1x1 block; global average pool; logits",
+  "initialization": "PyTorch default Conv2d and BatchNorm2d",
+  "blur": "PIL bilinear 32-to-8-to-32 before augmentation",
+  "augmentation": "zero pad 4, uniform crop 32, horizontal flip p=0.5",
+  "normalization_mean": [
+    0.4914,
+    0.4822,
+    0.4465
+  ],
+  "normalization_std": [
+    0.2023,
+    0.1994,
+    0.201
+  ],
+  "torch": "2.14.0",
+  "device": "mps",
+  "code_sha256": {
+    "__init__.py": "80bfeffae6820bdf4d363eba3ca8f88d748fa83e541e95715eba556330a1015c",
+    "core.py": "0b77e11efee261f44ab0f2ef0e534e0c54596f2bae260d4a6ad5387168ab173a",
+    "prepare.py": "d651e46c3c58b4a229d5254ec5b3f5f8a95d909174b9117619daeb3b60bd334e",
+    "report.py": "8d949e0009139b6a2fefbe475ae89acfbcbcecdc0c0ca3a66f1259e89c31e391",
+    "run.py": "744b91c4411a037ba3e90fc2e854b3d87475318e2d233db13653857067ba51b0"
+  }
+}
